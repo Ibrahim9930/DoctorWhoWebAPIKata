@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using DoctorWho.Db;
+using DoctorWho.Db.Domain;
+using DoctorWho.Db.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -27,6 +30,13 @@ namespace DoctorWho.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            
+            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+            services.AddScoped<DoctorWhoCoreDbContext>();
+            
+            services.AddScoped<EFRepository<Doctor>,DoctorEFRepository>();
+            
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo {Title = "DoctorWho.Web", Version = "v1"});
