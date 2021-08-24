@@ -20,7 +20,7 @@ namespace DoctorWho.Db.Repositories
 
         public T GetByProperty<TProperty>(Func<T, TProperty> getProperty, TProperty propertyValue)
         {
-            return _context.Set<T>().AsEnumerable().First(en => getProperty(en).Equals(propertyValue));
+            return _context.Set<T>().AsEnumerable().FirstOrDefault(en => getProperty(en).Equals(propertyValue));
         }
 
         public abstract T GetByIdWithRelatedData(int id);

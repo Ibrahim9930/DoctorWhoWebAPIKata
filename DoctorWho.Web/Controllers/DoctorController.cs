@@ -51,6 +51,14 @@ namespace DoctorWho.Web.Controllers
         [HttpPost]
         public ActionResult<DoctorDto> CreateDoctor(DoctorForCreationWithPostDto doctorCreationWithPostDto)
         {
+            var doctorExists =
+                _repository.GetByProperty(doc => doc.DoctorNumber, doctorCreationWithPostDto.DoctorNumber);
+
+            if (doctorExists != null)
+            {
+                return Conflict();
+            }
+
             Doctor doctorEntity = _mapper.Map<Doctor>(doctorCreationWithPostDto);
 
             _repository.Add(doctorEntity);
