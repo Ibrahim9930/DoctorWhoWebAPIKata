@@ -3,6 +3,7 @@ using AutoMapper;
 using DoctorWho.Db.Domain;
 using DoctorWho.Db.Repositories;
 using DoctorWho.Web.Models;
+using DoctorWho.Web.Profiles;
 using DoctorWho.Web.Validators;
 using Microsoft.AspNetCore.Mvc;
 
@@ -68,6 +69,38 @@ namespace DoctorWho.Web.Controllers
 
             return CreatedAtRoute("GetDoctor",
                 new {doctorNumber = doctorEntity.DoctorNumber},
+                doctorRepresentationDto);
+        }
+
+        [HttpPut]
+        [Route("{doctorNumber}")]
+        public ActionResult<DoctorDto> UpsertDoctor([FromRoute] int doctorNumber,
+            [FromBody] DoctorForUpsertWithPut doctorUpsertWithPutDto)
+        {
+            var doctorExists = _repository.GetByProperty(doc => doc.DoctorNumber, doctorNumber);
+
+            Doctor doctorEntity = _mapper.Map<Doctor>(doctorUpsertWithPutDto);
+
+            DoctorDto doctorRepresentationDto = _mapper.Map<DoctorDto>(doctorEntity);
+
+            doctorEntity.DoctorNumber = doctorNumber;
+
+            if (doctorExists != null)
+            {
+                doctorEntity.DoctorId = doctorExists.DoctorId;
+                _repository.Update(doctorEntity);
+
+                _repository.Commit();
+
+                return NoContent();
+                
+            }
+
+            
+            _repository.Add(doctorEntity);
+            _repository.Commit();
+            return CreatedAtRoute("GetDoctor",
+                new {doctorNumber},
                 doctorRepresentationDto);
         }
     }
