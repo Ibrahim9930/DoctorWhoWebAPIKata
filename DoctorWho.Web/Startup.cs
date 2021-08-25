@@ -92,7 +92,7 @@ namespace DoctorWho.Web
             // services.AddScoped<DoctorWhoCoreDbContext>();
 
             services.AddScoped<EFRepository<Doctor>, DoctorEFRepository>();
-            
+            services.AddScoped<EFRepository<Episode>, EpisodeEFRepository>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo {Title = "DoctorWho.Web", Version = "v1"});
