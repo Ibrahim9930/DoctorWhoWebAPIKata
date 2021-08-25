@@ -1,7 +1,7 @@
 using DoctorWho.Web;
 using Xunit;
 
-namespace DoctorWho.Tests.DoctorControllerApiTests
+namespace DoctorWho.Tests
 {
     public class ApiTests : IClassFixture<InMemDbWebApplicationFactory<Web.Startup>>
     {
