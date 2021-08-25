@@ -11,24 +11,20 @@ namespace DoctorWho.Web.Controllers
 {
     [ApiController]
     [Route("api/doctors")]
-    public class DoctorController : Controller
+    public class DoctorController : DoctorWhoController<Doctor>
     {
-        private readonly EFRepository<Doctor> _repository;
-        private readonly IMapper _mapper;
 
-        private Doctor _cachedDoctor;
-        public DoctorController(EFRepository<Doctor> repository, IMapper mapper)
+        public DoctorController(EFRepository<Doctor> repository, IMapper mapper) : base(repository, mapper)
         {
-            _repository = repository;
-            _mapper = mapper;
         }
+        private Doctor _cachedDoctor;
 
         [HttpGet]
         public ActionResult<IEnumerable<DoctorDto>> GetDoctors()
         {
-            var doctorsEntities = _repository.GetAllEntities();
+            var doctorsEntities = Repository.GetAllEntities();
 
-            var doctors = GetDoctorRepresentation<IEnumerable<Doctor>, IEnumerable<DoctorDto>>(doctorsEntities);
+            var doctors = GetRepresentation<IEnumerable<Doctor>, IEnumerable<DoctorDto>>(doctorsEntities);
 
             return Ok(doctors);
         }
@@ -42,7 +38,7 @@ namespace DoctorWho.Web.Controllers
             if (doctorEntity == null)
                 return NotFound();
 
-            var doctorDto = GetDoctorRepresentation<Doctor, DoctorDto>(doctorEntity);
+            var doctorDto = GetRepresentation<Doctor, DoctorDto>(doctorEntity);
 
             return Ok(doctorDto);
         }
@@ -79,7 +75,7 @@ namespace DoctorWho.Web.Controllers
 
             return CreatedAtRoute("GetDoctor",
                 new {doctorNumber},
-                GetDoctorRepresentation<Doctor, DoctorDto>(GetDoctorEntity(doctorNumber))
+                GetRepresentation<Doctor, DoctorDto>(GetDoctorEntity(doctorNumber))
             );
         }
         
@@ -97,11 +93,7 @@ namespace DoctorWho.Web.Controllers
             return NoContent();
         }
         
-        private TOutput GetDoctorRepresentation<TInput, TOutput>(TInput doctorInputDto)
-        {
-            return _mapper.Map<TOutput>(doctorInputDto);
-        }
-
+        
         private bool DoctorExists(int doctorNumber)
         {
             return GetDoctorEntity(doctorNumber) != null;
@@ -111,7 +103,7 @@ namespace DoctorWho.Web.Controllers
         {
             if (_cachedDoctor == null || _cachedDoctor.DoctorNumber != doctorNumber)
             {
-                _cachedDoctor = _repository.GetByProperty(doc => doc.DoctorNumber, doctorNumber);
+                _cachedDoctor = Repository.GetByProperty(doc => doc.DoctorNumber, doctorNumber);
             }
 
             return _cachedDoctor;
@@ -119,13 +111,13 @@ namespace DoctorWho.Web.Controllers
 
         private void AddAndCommit<T>(T doctorDto, int? doctorNumber = null)
         {
-            Doctor doctorEntity = _mapper.Map<Doctor>(doctorDto);
+            Doctor doctorEntity = Mapper.Map<Doctor>(doctorDto);
 
             if (doctorNumber != null)
                 doctorEntity.DoctorNumber = doctorNumber.Value;
             
-            _repository.Add(doctorEntity);
-            _repository.Commit();
+            Repository.Add(doctorEntity);
+            Repository.Commit();
 
             _cachedDoctor = doctorEntity;
         }
@@ -133,22 +125,22 @@ namespace DoctorWho.Web.Controllers
         private void UpdateAndCommit<T>(T doctorDto, int doctorNumber)
         {
             Doctor doctorEntity = GetDoctorEntity(doctorNumber);
-            _mapper.Map(doctorDto, doctorEntity);
+            Mapper.Map(doctorDto, doctorEntity);
             
             
-            _repository.Update(doctorEntity);
-            _repository.Commit();
+            Repository.Update(doctorEntity);
+            Repository.Commit();
 
             _cachedDoctor = doctorEntity;
         }
         
         private void DeleteAndCommit(Doctor doctorEntity)
         {
-            _repository.Delete(doctorEntity);
-            _repository.Commit();
+            Repository.Delete(doctorEntity);
+            Repository.Commit();
 
             _cachedDoctor = null;
         }
-
+        
     }
 }
