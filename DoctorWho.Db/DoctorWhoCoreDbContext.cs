@@ -53,14 +53,6 @@ namespace DoctorWho.Db
         {
             throw new NotSupportedException();
         }
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            if (optionsBuilder.IsConfigured) return;
-
-            optionsBuilder.UseSqlServer(
-                "Data Source=localhost, 1433;Initial Catalog=DoctorWhoCore;");
-            base.OnConfiguring(optionsBuilder);
-        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             GetJoinEntityBuilder<Enemy, Episode>(modelBuilder).UsingEntity(j =>

@@ -80,19 +80,10 @@ namespace DoctorWho.Web
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-            services.AddDbContext<DoctorWhoCoreDbContext>();
-            // services.AddScoped(sp =>
-            // {
-            //     var optBuilder = new DbContextOptionsBuilder();
-            //     optBuilder.UseInMemoryDatabase("Development DB");
-            //     
-            //     var db = new DoctorWhoCoreDbContext(optBuilder.Options);
-            //     
-            //     db.Database.EnsureCreated();
-            //     
-            //     return db;
-            // });
-            
+            services.AddDbContext<DoctorWhoCoreDbContext>(opt =>
+            {
+                opt.UseSqlServer(Configuration.GetConnectionString("Docker_DB"));
+            });
             services.AddSingleton<ILocatorTranslator<Doctor, int?>, DoctorLocator>();
             services.AddSingleton<ILocatorPredicate<Doctor, int?>, DoctorLocator>();
             services.AddSingleton<ILocatorTranslator<Episode, string>, EpisodeLocator>();
