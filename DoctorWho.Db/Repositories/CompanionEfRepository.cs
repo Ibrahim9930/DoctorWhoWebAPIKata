@@ -1,26 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using DoctorWho.Db.Domain;
+using DoctorWho.Db.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoctorWho.Db.Repositories
 {
-    public class CompanionEFRepository : EFRepository<Companion>
+    public class CompanionEfRepository<TLocator> : EFRepository<Companion, TLocator>
     {
-        public CompanionEFRepository(DoctorWhoCoreDbContext context) : base(context)
+        public CompanionEfRepository(DoctorWhoCoreDbContext context,
+            ILocatorPredicate<Companion, TLocator> locatorPredicate) : base(context, locatorPredicate)
         {
         }
 
         public override Companion GetByIdWithRelatedData(int id)
         {
-            return _context.Companions
+            return Context.Companions
                 .Include(c => c.Episodes)
                 .First(c => c.CompanionId == id);
         }
 
         public override IEnumerable<Companion> GetAllEntitiesWithRelatedData()
         {
-            return _context.Companions
+            return Context.Companions
                 .Include(c => c.Episodes);
         }
     }
