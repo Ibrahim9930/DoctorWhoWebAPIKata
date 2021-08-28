@@ -80,28 +80,32 @@ namespace DoctorWho.Web
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-            services.AddScoped(sp =>
-            {
-                var optBuilder = new DbContextOptionsBuilder();
-                optBuilder.UseInMemoryDatabase("Development DB");
-                
-                var db = new DoctorWhoCoreDbContext(optBuilder.Options);
-                
-                db.Database.EnsureCreated();
-                
-                return db;
-            });
+            services.AddDbContext<DoctorWhoCoreDbContext>();
+            // services.AddScoped(sp =>
+            // {
+            //     var optBuilder = new DbContextOptionsBuilder();
+            //     optBuilder.UseInMemoryDatabase("Development DB");
+            //     
+            //     var db = new DoctorWhoCoreDbContext(optBuilder.Options);
+            //     
+            //     db.Database.EnsureCreated();
+            //     
+            //     return db;
+            // });
             
             services.AddSingleton<ILocatorTranslator<Doctor, int?>, DoctorLocator>();
             services.AddSingleton<ILocatorPredicate<Doctor, int?>, DoctorLocator>();
             services.AddSingleton<ILocatorTranslator<Episode, string>, EpisodeLocator>();
             services.AddSingleton<ILocatorPredicate<Episode, string>, EpisodeLocator>();
+            services.AddSingleton<ILocatorTranslator<Author, string>, AuthorLocator>();
+            services.AddSingleton<ILocatorPredicate<Author, string>, AuthorLocator>();
             
             services.AddSingleton<ILocatorTranslator<DoctorForCreationWithPostDto, int?>,DoctorPostDtoLocator>();
             services.AddSingleton<ILocatorTranslator<EpisodeForCreationWithPostDto, string>,EpisodePostDtoLocator>();
             
             services.AddScoped<EFRepository<Doctor,int?>, DoctorEfRepository<int?>>();
             services.AddScoped<EFRepository<Episode,string>, EpisodeEfRepository<string>>();
+            services.AddScoped<EFRepository<Author,string>, AuthorEfRepository<string>>();
 
             services.AddSwaggerGen(c =>
             {
