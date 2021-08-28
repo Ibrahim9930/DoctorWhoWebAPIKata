@@ -9,6 +9,8 @@ namespace DoctorWho.Web.Profiles
         public EpisodesProfile()
         {
             CreateMap<Episode, EpisodeDto>();
+            CreateMap<EpisodeForCreationWithPostDto, Episode>();
+
         }
     }
 }
