@@ -2,145 +2,95 @@ using System.Collections.Generic;
 using AutoMapper;
 using DoctorWho.Db.Domain;
 using DoctorWho.Db.Repositories;
+using DoctorWho.Web.Locators;
 using DoctorWho.Web.Models;
-using DoctorWho.Web.Profiles;
-using DoctorWho.Web.Validators;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoctorWho.Web.Controllers
 {
     [ApiController]
     [Route("api/doctors")]
-    public class DoctorController : DoctorWhoController<Doctor>
+    public class DoctorController : DoctorWhoController<Doctor, int?>
     {
+        private ILocatorTranslator<DoctorForCreationWithPostDto, int?> PostInputLocatorTranslator { get; }
 
-        public DoctorController(EFRepository<Doctor> repository, IMapper mapper) : base(repository, mapper)
+        public DoctorController(EFRepository<Doctor, int?> repository, IMapper mapper,
+            ILocatorTranslator<Doctor, int?> locatorTranslator,
+            ILocatorTranslator<DoctorForCreationWithPostDto, int?> postInputLocatorTranslator) : base(repository,
+            mapper, locatorTranslator)
         {
+            PostInputLocatorTranslator = postInputLocatorTranslator;
         }
-        private Doctor _cachedDoctor;
+
 
         [HttpGet]
-        public ActionResult<IEnumerable<DoctorDto>> GetDoctors()
+        public ActionResult<IEnumerable<Doctor>> GetAllResources()
         {
-            var doctorsEntities = Repository.GetAllEntities();
+            var doctorEntities = Repository.GetAllEntities();
 
-            var doctors = GetRepresentation<IEnumerable<Doctor>, IEnumerable<DoctorDto>>(doctorsEntities);
+            var output = GetRepresentation<IEnumerable<Doctor>, IEnumerable<DoctorDto>>(doctorEntities);
 
-            return Ok(doctors);
+            return Ok(output);
         }
 
         [HttpGet]
         [Route("{doctorNumber}", Name = "GetDoctor")]
-        public ActionResult<DoctorDto> GetDoctor(int doctorNumber)
+        public ActionResult<Doctor> GetResource(int? doctorNumber)
         {
-            var doctorEntity = GetDoctorEntity(doctorNumber);
+            var doctorEntity = GetEntity(doctorNumber);
 
             if (doctorEntity == null)
                 return NotFound();
 
-            var doctorDto = GetRepresentation<Doctor, DoctorDto>(doctorEntity);
+            var output = GetRepresentation<Doctor, DoctorDto>(doctorEntity);
 
-            return Ok(doctorDto);
+            return Ok(output);
         }
 
         [HttpPost]
-        public ActionResult<DoctorDto> CreateDoctor(DoctorForCreationWithPostDto doctorCreationWithPostDto)
+        public ActionResult<DoctorDto> CreateDoctor(DoctorForCreationWithPostDto input)
         {
-            if (DoctorExists(doctorCreationWithPostDto.DoctorNumber))
+            if (EntityExists(PostInputLocatorTranslator.GetLocator(input)))
             {
                 return Conflict();
             }
 
-            AddAndCommit(doctorCreationWithPostDto);
+            AddAndCommit(input);
 
-            return CreatedAtRoute("GetDoctor",
-                new {doctorNumber = doctorCreationWithPostDto.DoctorNumber},
-                GetDoctorEntity(doctorCreationWithPostDto.DoctorNumber)
-            );
+            return CreatedAtRoute("GetDoctor", new {doctorNumber = PostInputLocatorTranslator.GetLocator(input)},
+                GetResource(PostInputLocatorTranslator.GetLocator(input)));
         }
 
         [HttpPut]
         [Route("{doctorNumber}")]
-        public ActionResult<DoctorDto> UpsertDoctor([FromRoute] int doctorNumber,
-            [FromBody] DoctorForUpsertWithPut doctorUpsertWithPutDto)
+        public ActionResult<DoctorDto> UpsertDoctor([FromRoute] int? doctorNumber,
+            [FromBody] DoctorForUpsertWithPut input)
         {
-            if (DoctorExists(doctorNumber))
+            if (EntityExists(doctorNumber))
             {
-                UpdateAndCommit(doctorUpsertWithPutDto, doctorNumber);
+                UpdateAndCommit(input, doctorNumber);
 
                 return NoContent();
             }
 
-            AddAndCommit(doctorUpsertWithPutDto,doctorNumber);
+            AddAndCommit(input, doctorNumber);
 
-            return CreatedAtRoute("GetDoctor",
-                new {doctorNumber},
-                GetRepresentation<Doctor, DoctorDto>(GetDoctorEntity(doctorNumber))
-            );
+            return CreatedAtRoute("GetDoctor", new {doctorNumber},
+                GetResource(doctorNumber));
         }
-        
+
         [HttpDelete]
         [Route("{doctorNumber}")]
-        public ActionResult DeleteDoctor(int doctorNumber)
+        public ActionResult DeleteResource(int? doctorNumber)
         {
-            if (!DoctorExists(doctorNumber))
+            if (!EntityExists(doctorNumber))
                 return NotFound();
 
-            var doctor = GetDoctorEntity(doctorNumber);
+            var doctorEntity = GetEntity(doctorNumber);
 
-            DeleteAndCommit(doctor);
+            DeleteAndCommit(doctorEntity);
 
             return NoContent();
         }
-        
-        
-        private bool DoctorExists(int doctorNumber)
-        {
-            return GetDoctorEntity(doctorNumber) != null;
-        }
-        
-        private Doctor GetDoctorEntity(int doctorNumber)
-        {
-            if (_cachedDoctor == null || _cachedDoctor.DoctorNumber != doctorNumber)
-            {
-                _cachedDoctor = Repository.GetByProperty(doc => doc.DoctorNumber, doctorNumber);
-            }
-
-            return _cachedDoctor;
-        }
-
-        private void AddAndCommit<T>(T doctorDto, int? doctorNumber = null)
-        {
-            Doctor doctorEntity = Mapper.Map<Doctor>(doctorDto);
-
-            if (doctorNumber != null)
-                doctorEntity.DoctorNumber = doctorNumber.Value;
-            
-            Repository.Add(doctorEntity);
-            Repository.Commit();
-
-            _cachedDoctor = doctorEntity;
-        }
-
-        private void UpdateAndCommit<T>(T doctorDto, int doctorNumber)
-        {
-            Doctor doctorEntity = GetDoctorEntity(doctorNumber);
-            Mapper.Map(doctorDto, doctorEntity);
-            
-            
-            Repository.Update(doctorEntity);
-            Repository.Commit();
-
-            _cachedDoctor = doctorEntity;
-        }
-        
-        private void DeleteAndCommit(Doctor doctorEntity)
-        {
-            Repository.Delete(doctorEntity);
-            Repository.Commit();
-
-            _cachedDoctor = null;
-        }
-        
     }
 }
