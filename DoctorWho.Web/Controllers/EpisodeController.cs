@@ -14,9 +14,12 @@ namespace DoctorWho.Web.Controllers
     {
         private ILocatorTranslator<EpisodeForCreationWithPostDto, string> PostInputLocatorTranslator { get; }
 
+        private EpisodeEfRepository<string> EpisodeRepository => (EpisodeEfRepository<string>) Repository;
+
         public EpisodeController(EFRepository<Episode, string> repository, IMapper mapper,
             ILocatorTranslator<Episode, string> locatorTranslator,
-            ILocatorTranslator<EpisodeForCreationWithPostDto, string> postInputLocatorTranslator) : base(repository,
+            ILocatorTranslator<EpisodeForCreationWithPostDto, string> postInputLocatorTranslator) : base(
+            repository,
             mapper,
             locatorTranslator)
         {
@@ -34,8 +37,8 @@ namespace DoctorWho.Web.Controllers
         }
 
         [HttpGet]
-        [Route("api/{episodeLocator}", Name = "GetEpisode")]
-        public  ActionResult<Episode> GetResource(string episodeLocator)
+        [Route("{episodeLocator}", Name = "GetEpisode")]
+        public ActionResult<Episode> GetResource(string episodeLocator)
         {
             var episodeEntity = GetEntity(episodeLocator);
 
@@ -59,6 +62,42 @@ namespace DoctorWho.Web.Controllers
 
             return CreatedAtRoute("GetEpisode", new {episodeLocator = PostInputLocatorTranslator.GetLocator(input)},
                 GetResource(PostInputLocatorTranslator.GetLocator(input)));
+        }
+
+        [HttpOptions]
+        [Route("{episodeLocator}/addCompanion")]
+        public ActionResult AddCompanionToEpisode(string episodeLocator,
+            CompanionForCreationDto companionForCreation)
+        {
+            Companion companion = GetRepresentation<CompanionForCreationDto, Companion>(companionForCreation);
+
+            if (!EntityExists(episodeLocator))
+                return NotFound();
+
+            Episode episodeEntity = GetEntity(episodeLocator);
+
+            EpisodeRepository.AddCompanion(episodeEntity, companion);
+            EpisodeRepository.Commit();
+
+            return Ok();
+        }
+        
+        [HttpOptions]
+        [Route("{episodeLocator}/addEnemy")]
+        public ActionResult AddEnemyToEpisode(string episodeLocator,
+            EnemyForCreationDto enemyForCreation)
+        {
+            Enemy enemy = GetRepresentation<EnemyForCreationDto, Enemy>(enemyForCreation);
+
+            if (!EntityExists(episodeLocator))
+                return NotFound();
+
+            Episode episodeEntity = GetEntity(episodeLocator);
+
+            EpisodeRepository.AddEnemy(episodeEntity, enemy);
+            EpisodeRepository.Commit();
+
+            return Ok();
         }
     }
 }
