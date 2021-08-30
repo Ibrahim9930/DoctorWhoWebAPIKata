@@ -4,7 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using DoctorWho.Db;
 using DoctorWho.Db.Domain;
+using DoctorWho.Db.Interfaces;
 using DoctorWho.Db.Repositories;
+using DoctorWho.Web.Locators;
+using DoctorWho.Web.Models;
 using DoctorWho.Web.Validators;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
@@ -77,7 +80,7 @@ namespace DoctorWho.Web
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-            services.AddScoped < DoctorWhoCoreDbContext>(sp =>
+            services.AddScoped(sp =>
             {
                 var optBuilder = new DbContextOptionsBuilder();
                 optBuilder.UseInMemoryDatabase("Development DB");
@@ -89,10 +92,17 @@ namespace DoctorWho.Web
                 return db;
             });
             
-            // services.AddScoped<DoctorWhoCoreDbContext>();
+            services.AddSingleton<ILocatorTranslator<Doctor, int?>, DoctorLocator>();
+            services.AddSingleton<ILocatorPredicate<Doctor, int?>, DoctorLocator>();
+            services.AddSingleton<ILocatorTranslator<Episode, string>, EpisodeLocator>();
+            services.AddSingleton<ILocatorPredicate<Episode, string>, EpisodeLocator>();
+            
+            services.AddSingleton<ILocatorTranslator<DoctorForCreationWithPostDto, int?>,DoctorPostDtoLocator>();
+            services.AddSingleton<ILocatorTranslator<EpisodeForCreationWithPostDto, string>,EpisodePostDtoLocator>();
+            
+            services.AddScoped<EFRepository<Doctor,int?>, DoctorEfRepository<int?>>();
+            services.AddScoped<EFRepository<Episode,string>, EpisodeEfRepository<string>>();
 
-            services.AddScoped<EFRepository<Doctor>, DoctorEFRepository>();
-            services.AddScoped<EFRepository<Episode>, EpisodeEFRepository>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo {Title = "DoctorWho.Web", Version = "v1"});

@@ -1,55 +1,61 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using DoctorWho.Db.Interfaces;
 
 namespace DoctorWho.Db.Repositories
 {
-    public abstract class EFRepository<T> : IRepository<T> where T : class
+    public abstract class EFRepository<TEntity, TLocator> : IRepository<TEntity>
+        where TEntity : class
     {
-        protected DoctorWhoCoreDbContext _context;
+        protected DoctorWhoCoreDbContext Context;
+        private ILocatorPredicate<TEntity, TLocator> LocatorPredicate { get; }
 
-        protected EFRepository(DoctorWhoCoreDbContext context)
+        protected EFRepository(DoctorWhoCoreDbContext context,
+            ILocatorPredicate<TEntity, TLocator> locatorPredicate)
         {
-            _context = context;
+            Context = context;
+            LocatorPredicate = locatorPredicate;
         }
 
-        public T GetById(int id)
+        public TEntity GetById(int id)
         {
-            return _context.Set<T>().Find(id);
+            return Context.Set<TEntity>().Find(id);
         }
 
-        public T GetByProperty<TProperty>(Func<T, TProperty> getProperty, TProperty propertyValue)
+        public TEntity GetByLocator(TLocator locator)
         {
-            return _context.Set<T>().AsEnumerable().FirstOrDefault(en => getProperty(en).Equals(propertyValue));
+            return Context.Set<TEntity>().FirstOrDefault(LocatorPredicate.GetExpression(locator));
         }
 
-        public abstract T GetByIdWithRelatedData(int id);
+        public abstract TEntity GetByIdWithRelatedData(int id);
 
-        public virtual IEnumerable<T> GetAllEntities()
+        public virtual IEnumerable<TEntity> GetAllEntities()
         {
-            return _context.Set<T>();
+            return Context.Set<TEntity>();
         }
 
-        public abstract IEnumerable<T> GetAllEntitiesWithRelatedData();
+        public abstract IEnumerable<TEntity> GetAllEntitiesWithRelatedData();
 
-        public void Add(T newEntity)
+        public void Add(TEntity newEntity)
         {
-            _context.Add(newEntity);
+            Context.Add(newEntity);
         }
 
-        public void Update(T updatedEntity)
+        public void Update(TEntity updatedEntity)
         {
-            _context.Update(updatedEntity);
+            Context.Update(updatedEntity);
         }
 
-        public void Delete(T deletedEntity)
+        public void Delete(TEntity deletedEntity)
         {
-            _context.Remove(deletedEntity);
+            Context.Remove(deletedEntity);
         }
 
         public void Commit()
         {
-            _context.SaveChanges();
+            Context.SaveChanges();
         }
     }
 }

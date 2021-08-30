@@ -1,19 +1,23 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using DoctorWho.Db.Domain;
+using DoctorWho.Db.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoctorWho.Db.Repositories
 {
-    public class EpisodeEFRepository : EFRepository<Episode>
+    public class EpisodeEfRepository<TLocator> : EFRepository<Episode, TLocator>
     {
-        public EpisodeEFRepository(DoctorWhoCoreDbContext context) : base(context)
+        public EpisodeEfRepository(DoctorWhoCoreDbContext context,
+            ILocatorPredicate<Episode, TLocator> locatorPredicate) : base(context, locatorPredicate)
         {
         }
 
         public override Episode GetByIdWithRelatedData(int id)
         {
-            return _context.Episodes
+            return Context.Episodes
                 .Include(ep => ep.Author)
                 .Include(ep => ep.Doctor)
                 .Include(ep => ep.Companions)
@@ -23,29 +27,29 @@ namespace DoctorWho.Db.Repositories
 
         public override IEnumerable<Episode> GetAllEntitiesWithRelatedData()
         {
-            return _context.Episodes
+            return Context.Episodes
                 .Include(ep => ep.Author)
                 .Include(ep => ep.Doctor)
                 .Include(ep => ep.Companions)
                 .Include(ep => ep.Enemies);
         }
 
-        public void AddEnemy(Episode episode,Enemy enemy)
+        public void AddEnemy(Episode episode, Enemy enemy)
         {
-            _context.Attach(episode);
-            
+            Context.Attach(episode);
+
             episode.Enemies.Add(enemy);
-            
-            _context.ChangeTracker.DetectChanges();
+
+            Context.ChangeTracker.DetectChanges();
         }
 
-        public void AddCompanion(Episode episode,Companion companion)
+        public void AddCompanion(Episode episode, Companion companion)
         {
-            _context.Attach(companion);
-            
+            Context.Attach(companion);
+
             episode.Companions.Add(companion);
-            
-            _context.ChangeTracker.DetectChanges();
+
+            Context.ChangeTracker.DetectChanges();
         }
     }
 }
