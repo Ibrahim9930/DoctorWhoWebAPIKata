@@ -70,7 +70,9 @@ namespace DoctorWho.Web.Controllers
             {
                 UpdateAndCommit(input, doctorNumber);
 
-                return NoContent();
+                var doctorDto = GetRepresentation<Doctor, DoctorDto>(GetEntity(doctorNumber));
+                
+                return Ok(doctorDto);
             }
 
             AddAndCommit(input, doctorNumber);
