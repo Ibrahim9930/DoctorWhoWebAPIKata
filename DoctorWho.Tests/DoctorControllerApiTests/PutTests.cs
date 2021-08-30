@@ -20,7 +20,7 @@ namespace DoctorWho.Tests.DoctorControllerApiTests
 
         [Theory]
         [InlineData("200", HttpStatusCode.Created)]
-        [InlineData("2", HttpStatusCode.NoContent)]
+        [InlineData("2", HttpStatusCode.OK)]
         public async Task
             PUT_DoctorController_UpsertValid_AllFields_StatusCode_Should_200LevelStatusCode(string id,
                 HttpStatusCode statusCode)

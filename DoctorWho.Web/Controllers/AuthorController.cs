@@ -17,16 +17,20 @@ namespace DoctorWho.Web.Controllers
 
         [HttpPut]
         [Route("{authorName}")]
-        public ActionResult UpdateAuthor(string authorName,AuthorForUpdate input)
+        public ActionResult<AuthorDto> UpdateAuthor(string authorName,AuthorForUpdate input)
         {
             if (!EntityExists(authorName))
             {
                 return NotFound();
             }
 
+            var authorEntity = GetEntity(authorName);
+            
             UpdateAndCommit(input, authorName);
 
-            return NoContent();
+            var authorDto = GetRepresentation<Author, AuthorDto>(authorEntity);
+            
+            return Ok(authorDto);
         }
         
     }

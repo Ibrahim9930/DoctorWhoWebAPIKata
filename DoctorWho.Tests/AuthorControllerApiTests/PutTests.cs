@@ -16,7 +16,7 @@ namespace DoctorWho.Tests.AuthorControllerApiTests
 
         [Fact]
         public async Task
-            PUT_AuthorController_Update_ResourceExists_StatusCode_Should_204StatusCode()
+            PUT_AuthorController_Update_ResourceExists_StatusCode_Should_200StatusCode()
         {
             var client = Fixture.CreateClient();
 
@@ -28,7 +28,7 @@ namespace DoctorWho.Tests.AuthorControllerApiTests
             var response = await client.PutAsync($"/api/authors/Ida%20Gibson",
                 ResponseParser.GetResponseBody(creationDto));
 
-            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
         [Fact]
