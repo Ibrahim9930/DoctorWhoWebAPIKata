@@ -3,6 +3,7 @@ using AutoMapper;
 using DoctorWho.Db.Domain;
 using DoctorWho.Db.Repositories;
 using DoctorWho.Web.Models;
+using DoctorWho.Web.Validators;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoctorWho.Web.Controllers
@@ -13,10 +14,14 @@ namespace DoctorWho.Web.Controllers
     {
         private readonly EFRepository<Doctor> _repository;
         private readonly IMapper _mapper;
-        public DoctorController(EFRepository<Doctor> repository, IMapper mapper)
+        private DoctorCreationValidator _doctorCreationValidator;
+
+        public DoctorController(EFRepository<Doctor> repository, IMapper mapper,
+            DoctorCreationValidator doctorCreationValidator)
         {
             _repository = repository;
             _mapper = mapper;
+            _doctorCreationValidator = doctorCreationValidator;
         }
 
         [HttpGet]
@@ -41,6 +46,29 @@ namespace DoctorWho.Web.Controllers
             var doctor = _mapper.Map<DoctorDto>(doctorEntity);
 
             return Ok(doctor);
+        }
+
+        [HttpPost]
+        public ActionResult<DoctorDto> CreateDoctor(DoctorForCreationWithPostDto doctorCreationWithPostDto)
+        {
+            var doctorExists =
+                _repository.GetByProperty(doc => doc.DoctorNumber, doctorCreationWithPostDto.DoctorNumber);
+
+            if (doctorExists != null)
+            {
+                return Conflict();
+            }
+
+            Doctor doctorEntity = _mapper.Map<Doctor>(doctorCreationWithPostDto);
+
+            _repository.Add(doctorEntity);
+            _repository.Commit();
+
+            DoctorDto doctorRepresentationDto = _mapper.Map<DoctorDto>(doctorEntity);
+
+            return CreatedAtRoute("GetDoctor",
+                new {doctorNumber = doctorEntity.DoctorNumber},
+                doctorRepresentationDto);
         }
     }
 }

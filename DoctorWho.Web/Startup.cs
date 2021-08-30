@@ -5,10 +5,15 @@ using System.Threading.Tasks;
 using DoctorWho.Db;
 using DoctorWho.Db.Domain;
 using DoctorWho.Db.Repositories;
+using DoctorWho.Web.Validators;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,13 +34,51 @@ namespace DoctorWho.Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
-            
+            services.AddControllers()
+                .ConfigureApiBehaviorOptions(setupAction =>
+                {
+                    setupAction.InvalidModelStateResponseFactory = context =>
+                    {
+                        var problemDetailsFactory = context.HttpContext.RequestServices
+                            .GetRequiredService<ProblemDetailsFactory>();
+
+                        var problemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext);
+
+                        var actionExecutingContext = context as ActionExecutingContext;
+                        
+                        if (!context.ModelState.IsValid)
+                        {
+                            if (context.ActionDescriptor.Parameters.Count ==
+                                actionExecutingContext?.ActionArguments.Count)
+                            {
+                                problemDetails.Status = StatusCodes.Status422UnprocessableEntity;
+                                problemDetails.Detail = "error validating one or more fields";
+
+                                return new UnprocessableEntityObjectResult(problemDetails)
+                                {
+                                    ContentTypes = {"application/problem+json"}
+                                };
+                            }
+                        }
+
+                        problemDetails.Status = StatusCodes.Status400BadRequest;
+                        problemDetails.Title = "Un-parsable input";
+
+                        return new BadRequestObjectResult(problemDetails)
+                        {
+                            ContentTypes = {"application/problem+json"}
+                        };
+                    };
+                });
+            services.AddFluentValidation(
+                fv => fv.RegisterValidatorsFromAssemblyContaining<DoctorCreationValidator>()
+            );
+
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             services.AddScoped<DoctorWhoCoreDbContext>();
-            
-            services.AddScoped<EFRepository<Doctor>,DoctorEFRepository>();
+
+            services.AddScoped<EFRepository<Doctor>, DoctorEFRepository>();
             
             services.AddSwaggerGen(c =>
             {
