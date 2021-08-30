@@ -15,14 +15,12 @@ namespace DoctorWho.Web.Controllers
     {
         private readonly EFRepository<Doctor> _repository;
         private readonly IMapper _mapper;
-        private DoctorCreationValidator _doctorCreationValidator;
 
-        public DoctorController(EFRepository<Doctor> repository, IMapper mapper,
-            DoctorCreationValidator doctorCreationValidator)
+        private Doctor _cachedDoctor;
+        public DoctorController(EFRepository<Doctor> repository, IMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
-            _doctorCreationValidator = doctorCreationValidator;
         }
 
         [HttpGet]
@@ -30,7 +28,7 @@ namespace DoctorWho.Web.Controllers
         {
             var doctorsEntities = _repository.GetAllEntities();
 
-            var doctors = _mapper.Map<IEnumerable<DoctorDto>>(doctorsEntities);
+            var doctors = GetDoctorRepresentation<IEnumerable<Doctor>, IEnumerable<DoctorDto>>(doctorsEntities);
 
             return Ok(doctors);
         }
@@ -39,37 +37,30 @@ namespace DoctorWho.Web.Controllers
         [Route("{doctorNumber}", Name = "GetDoctor")]
         public ActionResult<DoctorDto> GetDoctor(int doctorNumber)
         {
-            var doctorEntity = _repository.GetByProperty(doc => doc.DoctorNumber, doctorNumber);
+            var doctorEntity = GetDoctorEntity(doctorNumber);
 
             if (doctorEntity == null)
                 return NotFound();
 
-            var doctor = _mapper.Map<DoctorDto>(doctorEntity);
+            var doctorDto = GetDoctorRepresentation<Doctor, DoctorDto>(doctorEntity);
 
-            return Ok(doctor);
+            return Ok(doctorDto);
         }
 
         [HttpPost]
         public ActionResult<DoctorDto> CreateDoctor(DoctorForCreationWithPostDto doctorCreationWithPostDto)
         {
-            var doctorExists =
-                _repository.GetByProperty(doc => doc.DoctorNumber, doctorCreationWithPostDto.DoctorNumber);
-
-            if (doctorExists != null)
+            if (DoctorExists(doctorCreationWithPostDto.DoctorNumber))
             {
                 return Conflict();
             }
 
-            Doctor doctorEntity = _mapper.Map<Doctor>(doctorCreationWithPostDto);
-
-            _repository.Add(doctorEntity);
-            _repository.Commit();
-
-            DoctorDto doctorRepresentationDto = _mapper.Map<DoctorDto>(doctorEntity);
+            AddAndCommit(doctorCreationWithPostDto);
 
             return CreatedAtRoute("GetDoctor",
-                new {doctorNumber = doctorEntity.DoctorNumber},
-                doctorRepresentationDto);
+                new {doctorNumber = doctorCreationWithPostDto.DoctorNumber},
+                GetDoctorEntity(doctorCreationWithPostDto.DoctorNumber)
+            );
         }
 
         [HttpPut]
@@ -77,31 +68,65 @@ namespace DoctorWho.Web.Controllers
         public ActionResult<DoctorDto> UpsertDoctor([FromRoute] int doctorNumber,
             [FromBody] DoctorForUpsertWithPut doctorUpsertWithPutDto)
         {
-            var doctorExists = _repository.GetByProperty(doc => doc.DoctorNumber, doctorNumber);
-
-            Doctor doctorEntity = _mapper.Map<Doctor>(doctorUpsertWithPutDto);
-
-            DoctorDto doctorRepresentationDto = _mapper.Map<DoctorDto>(doctorEntity);
-
-            doctorEntity.DoctorNumber = doctorNumber;
-
-            if (doctorExists != null)
+            if (DoctorExists(doctorNumber))
             {
-                doctorEntity.DoctorId = doctorExists.DoctorId;
-                _repository.Update(doctorEntity);
-
-                _repository.Commit();
+                UpdateAndCommit(doctorUpsertWithPutDto, doctorNumber);
 
                 return NoContent();
-                
             }
 
+            AddAndCommit(doctorUpsertWithPutDto,doctorNumber);
+
+            return CreatedAtRoute("GetDoctor",
+                new {doctorNumber},
+                GetDoctorRepresentation<Doctor, DoctorDto>(GetDoctorEntity(doctorNumber))
+            );
+        }
+        
+        private TOutput GetDoctorRepresentation<TInput, TOutput>(TInput doctorInputDto)
+        {
+            return _mapper.Map<TOutput>(doctorInputDto);
+        }
+
+        private bool DoctorExists(int doctorNumber)
+        {
+            return GetDoctorEntity(doctorNumber) != null;
+        }
+        
+        private Doctor GetDoctorEntity(int doctorNumber)
+        {
+            if (_cachedDoctor == null || _cachedDoctor.DoctorNumber != doctorNumber)
+            {
+                _cachedDoctor = _repository.GetByProperty(doc => doc.DoctorNumber, doctorNumber);
+            }
+
+            return _cachedDoctor;
+        }
+
+        private void AddAndCommit<T>(T doctorDto, int? doctorNumber = null)
+        {
+            Doctor doctorEntity = _mapper.Map<Doctor>(doctorDto);
+
+            if (doctorNumber != null)
+                doctorEntity.DoctorNumber = doctorNumber.Value;
             
             _repository.Add(doctorEntity);
             _repository.Commit();
-            return CreatedAtRoute("GetDoctor",
-                new {doctorNumber},
-                doctorRepresentationDto);
+
+            _cachedDoctor = doctorEntity;
         }
+
+        private void UpdateAndCommit<T>(T doctorDto, int doctorNumber)
+        {
+            Doctor doctorEntity = GetDoctorEntity(doctorNumber);
+            _mapper.Map(doctorDto, doctorEntity);
+            
+            
+            _repository.Update(doctorEntity);
+            _repository.Commit();
+
+            _cachedDoctor = doctorEntity;
+        }
+
     }
 }

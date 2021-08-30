@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -76,7 +77,19 @@ namespace DoctorWho.Web
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-            services.AddScoped<DoctorWhoCoreDbContext>();
+            services.AddScoped < DoctorWhoCoreDbContext>(sp =>
+            {
+                var optBuilder = new DbContextOptionsBuilder();
+                optBuilder.UseInMemoryDatabase("Development DB");
+                
+                var db = new DoctorWhoCoreDbContext(optBuilder.Options);
+                
+                db.Database.EnsureCreated();
+                
+                return db;
+            });
+            
+            // services.AddScoped<DoctorWhoCoreDbContext>();
 
             services.AddScoped<EFRepository<Doctor>, DoctorEFRepository>();
             
