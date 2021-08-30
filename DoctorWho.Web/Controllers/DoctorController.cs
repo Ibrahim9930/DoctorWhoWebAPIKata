@@ -83,6 +83,20 @@ namespace DoctorWho.Web.Controllers
             );
         }
         
+        [HttpDelete]
+        [Route("{doctorNumber}")]
+        public ActionResult DeleteDoctor(int doctorNumber)
+        {
+            if (!DoctorExists(doctorNumber))
+                return NotFound();
+
+            var doctor = GetDoctorEntity(doctorNumber);
+
+            DeleteAndCommit(doctor);
+
+            return NoContent();
+        }
+        
         private TOutput GetDoctorRepresentation<TInput, TOutput>(TInput doctorInputDto)
         {
             return _mapper.Map<TOutput>(doctorInputDto);
@@ -126,6 +140,14 @@ namespace DoctorWho.Web.Controllers
             _repository.Commit();
 
             _cachedDoctor = doctorEntity;
+        }
+        
+        private void DeleteAndCommit(Doctor doctorEntity)
+        {
+            _repository.Delete(doctorEntity);
+            _repository.Commit();
+
+            _cachedDoctor = null;
         }
 
     }
